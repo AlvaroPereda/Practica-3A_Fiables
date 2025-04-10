@@ -1,22 +1,3 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date: 30.03.2025 18:18:28
--- Design Name: 
--- Module Name: redundancia - Behavioral
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.STD_LOGIC_ARITH.ALL;
@@ -36,7 +17,6 @@ end redundancia;
 
 architecture Behavioral of redundancia is
     signal count1, count2 : STD_LOGIC_VECTOR (7 downto 0);
-    signal enable1, enable2 : STD_LOGIC := '1';
     signal clk_1hz : STD_LOGIC;
     signal reset_n : STD_LOGIC;
     signal count_value : STD_LOGIC_VECTOR (7 downto 0);
@@ -51,14 +31,12 @@ architecture Behavioral of redundancia is
     component contador1
         Port ( clk : in STD_LOGIC;
                reset : in STD_LOGIC;
-               enable : in STD_LOGIC;
                count : out STD_LOGIC_VECTOR (7 downto 0));
     end component;
 
     component contador2
         Port ( clk : in STD_LOGIC;
                reset : in STD_LOGIC;
-               enable : in STD_LOGIC;
                count : out STD_LOGIC_VECTOR (7 downto 0));
     end component;
 
@@ -72,7 +50,7 @@ architecture Behavioral of redundancia is
         );
     end component;    
 begin
-    -- Reset invertido (de otra forma, esta activo cuando NO está pulsado)
+    -- Reset invertido (activo en bajo)
     reset_n <= not RESET;
 
     -- Divisor de reloj
@@ -84,30 +62,30 @@ begin
             clk_out => clk_1hz
         );
 
-    U1: contador1 port map (clk => clk_1hz, reset => reset_n, enable => enable1, count => count1);
-    U2: contador2 port map (clk => clk_1hz, reset => reset_n, enable => enable2, count => count2);
+    -- Instancias de contadores sin enable
+    U1: contador1 port map (clk => clk_1hz, reset => reset_n, count => count1);
+    U2: contador2 port map (clk => clk_1hz, reset => reset_n, count => count2);
 
+    -- Proceso para selecciÃ³n de salida y LEDs
     process(SW, count1, count2)
     begin
         if SW = "1" then
-            enable1 <= '0';
-            enable2 <= '1';
             count_value <= count2;
+            LED_CONTADOR_1 <= '0';
+            LED_CONTADOR_2 <= '1';
         else
-            enable1 <= '1';
-            enable2 <= '0';
             count_value <= count1;
+            LED_CONTADOR_1 <= '1';
+            LED_CONTADOR_2 <= '0';
         end if;
-        LED_CONTADOR_1 <= enable1;
-        LED_CONTADOR_2 <= enable2;
     end process;
 
-    -- Connect to LED outputs
+    -- Salida de los LEDs generales
     LED <= count_value;
 
-    -- Display controller for 7-segment displays
+    -- Controlador del display
     DISP: display_controller port map (
-        clk => CLK100MHZ,  -- Use fast clock for display multiplexing
+        clk => CLK100MHZ,
         reset => reset_n,
         count => count_value,
         an => AN,
